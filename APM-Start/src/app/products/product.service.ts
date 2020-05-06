@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { throwError, combineLatest, BehaviorSubject, Subject, merge } from 'rxjs';
-import { catchError, tap, map, scan } from 'rxjs/operators';
+import { throwError, combineLatest, BehaviorSubject, Subject, merge, from } from 'rxjs';
+import { catchError, tap, map, scan, shareReplay, toArray, mergeMap, filter, switchMap } from 'rxjs/operators';
 
 import { Product } from './product';
 import { SupplierService } from '../suppliers/supplier.service';
 import { ProductCategoryService } from '../product-categories/product-category.service';
+import { Supplier } from '../suppliers/supplier';
 
 @Injectable({
   providedIn: 'root'
@@ -32,7 +33,8 @@ export class ProductService {
         searchKey: [product.productName]
       }) as Product
       )
-    )
+    ),
+    shareReplay(1)
   );
 
   private productSelectedSubject = new BehaviorSubject<number>(0);
@@ -45,8 +47,29 @@ export class ProductService {
     map(([products, selectedProductId]) =>
       products.find(product => product.id === selectedProductId)
     ),
-    tap(data => console.log('SelectedProduct', data))
+    tap(data => console.log('SelectedProduct', data)),
+    shareReplay(1)
   );
+
+  // selectredProductSuppliers$ = combineLatest([
+  //       this.selectedProducts$,
+  //   this.supplierService.supplier$
+  // ]).pipe(
+  //   map(([selectedProduct, suppliers]) =>
+  //   suppliers.filter(supplier => selectedProduct.supplierIds.includes(supplier.id))
+  //   )
+  // );
+
+  selectedProductSuppliers$ = this.selectedProducts$
+  .pipe(
+    filter(selectedProduct => Boolean(selectedProduct)),
+    switchMap(selectedProduct =>
+      from(selectedProduct.supplierIds)
+      .pipe(
+        mergeMap(supplierId => this.http.get<Supplier>(`${this.suppliersUrl}/${supplierId}`)),
+        toArray(),
+        tap(data => console.log('data', data))
+      )));
 
   private productInsertedSubject = new Subject<Product>();
   productInsertedAction$ = this.productInsertedSubject.asObservable();
@@ -61,8 +84,8 @@ export class ProductService {
   private suppliersUrl = this.supplierService.suppliersUrl;
 
   constructor(private http: HttpClient,
-    private supplierService: SupplierService,
-    private productCategoryService: ProductCategoryService) { }
+              private supplierService: SupplierService,
+              private productCategoryService: ProductCategoryService) { }
 
   private fakeProduct() {
     return {
