@@ -5,12 +5,12 @@
 
   <div class="card-body">
     <div class="container">
-      <!-- <div class="row justify-content-between">
+      <div class="row justify-content-between">
         <div class="col-3">
           <select class="form-control"
-                  (change)="onSelected()">
+                  (change)="onSelected($event.target.value)">
             <option value="0">- Display All -</option>
-            <option *ngFor="let category of categories"
+            <option *ngFor="let category of categories$ | async"
                     [value]="category.id">{{ category.name }}</option>
           </select>
         </div>
@@ -19,7 +19,7 @@
                   class="btn btn-outline-secondary"
                   (click)="onAdd()">Add Product</button>
         </div>
-      </div> -->
+      </div>
     </div>
 
     <div class="table-responsive">
@@ -38,7 +38,7 @@
           <tr>
             <td>{{ product.productName }}</td>
             <td>{{ product.productCode }}</td>
-            <td>{{ product.categoryId }}</td>
+            <td>{{ product.category }}</td>
             <td>{{ product.price | currency:"USD":"symbol":"1.2-2" }}</td>
             <td>{{ product.quantityInStock }}</td>
           </tr>
@@ -50,6 +50,6 @@
 </div>
 
 <div class="alert alert-danger"
-     *ngIf="errorMessage">
+     *ngIf="errorMessage$ | async as errorMessage">
   {{ errorMessage }}
 </div>
